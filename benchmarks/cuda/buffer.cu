@@ -27,7 +27,7 @@ static void getDeviceMemory(int device, void*& bufferPtr, void*& devicePtr, size
     {
         throw error(string("Failed to set CUDA device: ") + cudaGetErrorString(err));
     }
-
+    size += 64*1024;
     err = cudaMalloc(&bufferPtr, size);
     if (err != cudaSuccess)
     {
@@ -49,7 +49,8 @@ static void getDeviceMemory(int device, void*& bufferPtr, void*& devicePtr, size
         throw error(string("Failed to get pointer attributes: ") + cudaGetErrorString(err));
     }
 
-    devicePtr = attrs.devicePointer;
+    devicePtr = attrs.devicePointer + (64*1024) & 0xffffffffff0000;
+    bufferPtr = bufferPtr + (64*1024)  & 0xffffffffff0000;
 }
 
 

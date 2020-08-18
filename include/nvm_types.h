@@ -150,7 +150,7 @@ struct nvm_ctrl_info
     size_t                  db_stride;      // Doorbell stride (DSTRD)
     uint64_t                timeout;        // Controller timeout in milliseconds (TO)
     int                     contiguous;     // Contiguous queues required (CQR)
-    uint16_t                max_entries;    // Maximum queue entries supported (MQES)
+    uint32_t                max_entries;    // Maximum queue entries supported (MQES)
     uint8_t                 pci_vendor[4];  // PCI vendor and subsystem vendor identifier
     char                    serial_no[20];  // Serial number (NB! not null terminated)
     char                    model_no[40];   // Model number (NB! not null terminated)
