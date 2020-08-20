@@ -64,7 +64,8 @@ int nvm_admin_cq_create(nvm_aq_ref ref,                 // AQ pair reference
                         uint16_t id,                    // Queue identifier
                         const nvm_dma_t* dma,           // Queue memory handle
                         size_t page_offset,             // Number of pages to offset into the handle
-                        size_t qs);                     // Queue size/depth
+                        size_t qs,                      // Queue size/depth
+                        bool need_prp);                 // non-contiguous queue
 
 /*
  * Delete IO completion queue (CQ)
@@ -90,8 +91,8 @@ int nvm_admin_sq_create(nvm_aq_ref ref,                 // AQ pair reference
                         uint16_t id,                    // Queue identifier
                         const nvm_dma_t* dma,           // Queue memory handle
                         size_t page_offset,             // Number of pages to offset into the handle
-                        size_t qs);                     // Number of pages to use
-
+                        size_t qs,                      // Number of pages to use
+                        bool need_prp);                 // non-contiguous queue
 
 
 /*

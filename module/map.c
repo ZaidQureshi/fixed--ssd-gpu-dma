@@ -300,13 +300,15 @@ int map_gpu_memory(struct map* map)
         printk(KERN_ERR "nvidia_p2p_get_pages() failed: %d\n", err);
         return err;
     }
-
+    printk(KERN_WARNING "Alloc Page Size: %x", (uint32_t) gd->pages->page_size);
     err = nvidia_p2p_dma_map_pages(map->pdev, gd->pages, &gd->mappings);
     if (err != 0)
     {
         printk(KERN_ERR "nvidia_p2p_dma_map_pages() failed: %d\n", err);
         return err;
     }
+
+    printk(KERN_WARNING "DMA Page Size: %x", (uint32_t) gd->mappings->page_size_type);
 
     if (map->n_addrs != gd->pages->entries)
     {
@@ -317,6 +319,7 @@ int map_gpu_memory(struct map* map)
     for (i = 0; i < map->n_addrs; ++i)
     {
         map->addrs[i] = gd->mappings->dma_addresses[i];
+        printk(KERN_WARNING "page addr: %llx\tmap addr: %llx\n", gd->pages->pages[i]->physical_address. gd->mappings->dma_addresses[i]);
     }
     
     return 0;
