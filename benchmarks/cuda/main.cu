@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
 
     try {
         Controller ctrl(settings.controllerPath, settings.nvmNamespace);
-        auto dma = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(64*1024, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
+        auto dma = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(64*1024*10, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
 
         std::cout << dma.get()->vaddr << std::endl;
 
