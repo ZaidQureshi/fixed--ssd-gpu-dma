@@ -27,6 +27,78 @@
 using error = std::runtime_error;
 using std::string;
 
+int main(int argc, char** argv) {
+
+    Settings settings;
+    try
+    {
+        settings.parseArguments(argc, argv);
+    }
+    catch (const string& e)
+    {
+        fprintf(stderr, "%s\n", e.c_str());
+        fprintf(stderr, "%s\n", Settings::usageString(argv[0]).c_str());
+        return 1;
+    }
+
+#ifdef __DIS_CLUSTER__
+    sci_error_t err;
+    SCIInitialize(0, &err);
+    if (err != SCI_ERR_OK)
+    {
+        fprintf(stderr, "Failed to initialize SISCI: %s\n", SCIGetErrorString(err));
+        return 1;
+    }
+
+    sci_desc_t sd;
+    SCIOpen(&sd, 0, &err);
+    if (err != SCI_ERR_OK)
+    {
+        fprintf(stderr, "Failed to open SISCI descriptor: %s\n", SCIGetErrorString(err));
+        return 1;
+    }
+
+    sci_smartio_device_t cudaDev;
+    if (settings.cudaDeviceId != 0)
+    {
+        SCIBorrowDevice(sd, &cudaDev, settings.cudaDeviceId, 0, &err);
+        if (err != SCI_ERR_OK)
+        {
+            fprintf(stderr, "Failed to get SmartIO device reference for CUDA device: %s\n", SCIGetErrorString(err));
+            return 1;
+        }
+    }
+    else
+    {
+        SCIRegisterPCIeRequester(sd, settings.adapter, settings.bus, settings.devfn, SCI_FLAG_PCIE_REQUESTER_GLOBAL, &err);
+        if (err != SCI_ERR_OK)
+        {
+            fprintf(stderr, "Failed to register PCI requester: %s\n", SCIGetErrorString(err));
+            SCIClose(sd, 0, &err);
+            return 1;
+        }
+        sleep(1); // FIXME: Hack due to race condition in SmartIO
+    }
+#endif
+
+    cudaDeviceProp properties;
+    if (cudaGetDeviceProperties(&properties, settings.cudaDevice) != cudaSuccess)
+    {
+        fprintf(stderr, "Failed to get CUDA device properties\n");
+        return 1;
+    }
+
+    try {
+        Controller ctrl(settings.controllerPath, settings.nvmNamespace);
+    }
+    catch (const error& e) {
+        fprintf(stderr, "Unexpected error: %s\n", e.what());
+        return 1;
+    }
+
+}
+
+/*
 
 struct __align__(64) CmdTime
 {
@@ -37,7 +109,7 @@ struct __align__(64) CmdTime
 };
 
 
-__host__ static
+__host__
 std::shared_ptr<CmdTime> createReportingList(size_t numEntries, int device)
 {
     auto err = cudaSetDevice(device);
@@ -57,7 +129,7 @@ std::shared_ptr<CmdTime> createReportingList(size_t numEntries, int device)
 }
 
 
-__host__ static
+__host__
 std::shared_ptr<CmdTime> createReportingList(size_t numEntries)
 {
     CmdTime* list = nullptr;
@@ -73,7 +145,7 @@ std::shared_ptr<CmdTime> createReportingList(size_t numEntries)
 
 
 
-__device__ static
+__device__
 void moveBytes(const void* src, size_t srcOffset, void* dst, size_t dstOffset, size_t size)
 {
     const uint16_t numThreads = blockDim.x;
@@ -89,7 +161,7 @@ void moveBytes(const void* src, size_t srcOffset, void* dst, size_t dstOffset, s
 }
 
 
-__device__ static
+__device__
 void waitForIoCompletion(nvm_queue_t* cq, nvm_queue_t* sq, int* errCode)
 {
     const uint16_t numThreads = blockDim.x;
@@ -112,7 +184,7 @@ void waitForIoCompletion(nvm_queue_t* cq, nvm_queue_t* sq, int* errCode)
 }
 
 
-__device__ static
+__device__
 nvm_cmd_t* prepareChunk(QueuePair* qp, nvm_cmd_t* last, const uint64_t ioaddr, uint16_t offset, uint64_t blockOffset, uint32_t currChunk)
 {
     nvm_cmd_t local;
@@ -155,7 +227,7 @@ nvm_cmd_t* prepareChunk(QueuePair* qp, nvm_cmd_t* last, const uint64_t ioaddr, u
 
 
 
-__global__ static 
+__global__
 void moveKernel(void* src, void* dst, size_t chunkSize)
 {
     const uint16_t numThreads = blockDim.x;
@@ -164,7 +236,7 @@ void moveKernel(void* src, void* dst, size_t chunkSize)
 
 
 
-__host__ static inline
+__host__  inline
 void launchMoveKernel(size_t pageSize, void* input, void* src, void* dst, size_t currChunk, const Settings& settings)
 {
     const auto numPages = settings.numPages;
@@ -400,7 +472,7 @@ static void printStatistics(const Settings& settings, const cudaDeviceProp& prop
 static double launchNvmKernel(const Controller& ctrl, BufferPtr destination, const Settings& settings, const cudaDeviceProp& prop)
 {
     QueuePair queuePair;
-    DmaPtr queueMemory = prepareQueuePair(queuePair, ctrl, settings);
+    DmaPtr queueMemory = prepareQueuePair(queuePair, ctrl, settings,1);
 
     const size_t pageSize = ctrl.info.page_size;
     const size_t chunkSize = pageSize * settings.numPages;
@@ -749,3 +821,4 @@ int main(int argc, char** argv)
 #endif
     return 0;
 }
+*/
