@@ -90,11 +90,17 @@ int main(int argc, char** argv) {
 
     try {
         Controller ctrl(settings.controllerPath, settings.nvmNamespace);
+        auto dma = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(64*1024, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
+
+        std::cout << dma.get()->vaddr << std::endl;
+
     }
     catch (const error& e) {
         fprintf(stderr, "Unexpected error: %s\n", e.what());
         return 1;
     }
+
+
 
 }
 
