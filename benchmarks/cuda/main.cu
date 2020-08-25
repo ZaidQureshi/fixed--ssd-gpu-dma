@@ -21,6 +21,7 @@
 #include "event.h"
 #include "queue.h"
 #include "nvm_parallel_queue.h"
+#include <iostream>
 #ifdef __DIS_CLUSTER__
 #include <sisci_api.h>
 #endif
@@ -62,6 +63,7 @@ int main(int argc, char** argv) {
         //std::cout << dma.get()->vaddr << std::endl;
         QueuePair qp;
         prepareQueuePair(qp, ctrl, settings, 1);
+        std::cout << "END\n";
 
     }
     catch (const error& e) {

@@ -34,10 +34,39 @@ struct __align__(128) QueuePair
     DmaPtr              sq_mem;
     DmaPtr              cq_mem;
     DmaPtr              prp_mem;
+    BufferPtr           sq_tickets;
+    BufferPtr           sq_head_mark;
+    BufferPtr           sq_tail_mark;
+    BufferPtr           sq_cid;
+    BufferPtr           cq_tickets;
+    BufferPtr           cq_head_mark;
+    BufferPtr           cq_tail_mark;
 };
+
+
 
 #define MAX_SQ_ENTRIES_64K  (64*1024/64)
 #define MAX_CQ_ENTRIES_64K  (64*1024/16)
+
+void init_gpu_specific_struct(const Settings& settings, QueuePair& qp) {
+    qp.sq_tickets = createBuffer(qp.sq.qs * sizeof(padded_struct), settings.cudaDevice);
+    qp.sq_head_mark = createBuffer(qp.sq.qs * sizeof(padded_struct), settings.cudaDevice);
+    qp.sq_tail_mark = createBuffer(qp.sq.qs * sizeof(padded_struct), settings.cudaDevice);
+    qp.sq_cid = createBuffer(65536 * sizeof(padded_struct), settings.cudaDevice);
+    qp.sq.tickets = (padded_struct*) qp.sq_tickets.get();
+    qp.sq.head_mark = (padded_struct*) qp.sq_head_mark.get();
+    qp.sq.tail_mark = (padded_struct*) qp.sq_tail_mark.get();
+    qp.sq.cid = (padded_struct*) qp.sq_cid.get();
+    
+    qp.cq_tickets = createBuffer(qp.cq.qs * sizeof(padded_struct), settings.cudaDevice);
+    qp.cq_head_mark = createBuffer(qp.cq.qs * sizeof(padded_struct), settings.cudaDevice);
+    qp.cq_tail_mark = createBuffer(qp.cq.qs * sizeof(padded_struct), settings.cudaDevice);
+    qp.cq.tickets = (padded_struct*) qp.cq_tickets.get();
+    qp.cq.head_mark = (padded_struct*) qp.cq_head_mark.get();
+    qp.cq.tail_mark = (padded_struct*) qp.cq_tail_mark.get();
+
+
+}
 
 __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Settings& settings, const uint16_t qp_id);
 
@@ -146,7 +175,7 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
         throw error(string("Failed to create submission queue: ") + nvm_strerror(status));
     }
 
-
+    
     // Get a valid device pointer for SQ doorbell
     err = cudaHostGetDevicePointer(&devicePtr, (void*) qp.sq.db, 0);
     if (err != cudaSuccess)

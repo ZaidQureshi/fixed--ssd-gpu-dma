@@ -15,6 +15,7 @@
 #include <string>
 #include <new>
 #include <cstdlib>
+#include <iostream>
 
 
 using error = std::runtime_error;
@@ -140,6 +141,7 @@ DmaPtr createDma(const nvm_ctrl_t* ctrl, size_t size, int cudaDevice)
     return DmaPtr(dma, [bufferPtr](nvm_dma_t* dma) {
         nvm_dma_unmap(dma);
         cudaFree(bufferPtr);
+        std::cout << "HERE1\n";
     });
 }
 
@@ -171,7 +173,7 @@ BufferPtr createBuffer(size_t size, int cudaDevice)
 
     getDeviceMemory(cudaDevice, bufferPtr, size);
 
-    return BufferPtr(bufferPtr, [](void* ptr) { cudaFree(ptr); });
+    return BufferPtr(bufferPtr, [](void* ptr) { cudaFree(ptr); std::cout << "HERE2\n";});
 }
 
 

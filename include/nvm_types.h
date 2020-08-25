@@ -96,15 +96,15 @@ typedef struct __align__(128)
 typedef struct __align__(128)
 {
     simt::atomic<uint32_t, simt::thread_scope_system> head;
-    uint8_t pad0[128];
+    uint8_t pad0[124];
     simt::atomic<uint32_t, simt::thread_scope_system> tail;
-    uint8_t pad1[128];
+    uint8_t pad1[124];
     /* padded_struct<simt::atomic<uint32_t, simt::thread_scope_system>> head; */
     /* padded_struct<simt::atomic<uint32_t, simt::thread_scope_system>> tail; */
     simt::atomic<uint32_t, simt::thread_scope_system> in_ticket;
-    uint8_t pad2[128];
+    uint8_t pad2[124];
     simt::atomic<uint32_t, simt::thread_scope_system> cid_ticket;
-    uint8_t pad3[128];
+    uint8_t pad3[124];
     padded_struct* tickets;
 
     padded_struct* head_mark;

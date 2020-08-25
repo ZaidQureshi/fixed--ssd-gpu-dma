@@ -28,6 +28,7 @@ int nvm_queue_clear(nvm_queue_t* queue, const nvm_ctrl_t* ctrl, bool cq, uint16_
     queue->db = cq ? CQ_DBL(ctrl->mm_ptr, queue->no, ctrl->dstrd) : SQ_DBL(ctrl->mm_ptr, queue->no, ctrl->dstrd);
     queue->vaddr = vaddr;
     queue->ioaddr = ioaddr;
+
     
     return 0;
 }
