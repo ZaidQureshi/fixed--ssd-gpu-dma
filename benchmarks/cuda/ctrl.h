@@ -165,6 +165,4 @@ void Controller::reserveQueues(uint16_t numSubs, uint16_t numCpls)
     n_cqs = numCpls;
 }
 
-
-
 #endif

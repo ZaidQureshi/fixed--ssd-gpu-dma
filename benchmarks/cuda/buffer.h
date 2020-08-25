@@ -81,8 +81,6 @@ static void getDeviceMemory(int device, void*& bufferPtr, void*& devicePtr, size
     bufferPtr = (void*) (((uint64_t)bufferPtr) + (64*1024)  & 0xffffffffff0000);
 }
 
-
-
 static void getDeviceMemory(int device, void*& bufferPtr, size_t size)
 {
     void* notUsed = nullptr;
@@ -249,8 +247,6 @@ DmaPtr createRemoteDma(const nvm_ctrl_t* ctrl, size_t size)
     return DmaPtr(dma, nvm_dma_unmap);
 }
 #endif
-
-
 
 
 #endif

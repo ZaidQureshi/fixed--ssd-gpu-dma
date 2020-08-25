@@ -12,13 +12,14 @@
 #include <nvm_admin.h>
 #include <stdexcept>
 #include <string>
+#include <iostream>
 
 
 using error = std::runtime_error;
 using std::string;
 
 
-struct __align__(64) QueuePair
+struct __align__(128) QueuePair
 {
     uint32_t            pageSize;
     uint32_t            blockSize;
@@ -43,20 +44,28 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
 
 __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Settings& settings, const uint16_t qp_id)
 {
+
+    std::cout << "HERE\n";
     uint64_t cap = ((volatile uint64_t*) ctrl.ctrl->mm_ptr)[0];
     bool cqr = (cap & 0x0000000000010000) == 0x0000000000010000;
 
-    uint64_t sq_size = (cqr) ? MAX_SQ_ENTRIES_64K : ((((volatile uint16_t*) ctrl.ctrl->mm_ptr)[0] + 1) );
-    uint64_t cq_size = (cqr) ? MAX_CQ_ENTRIES_64K : ((((volatile uint16_t*) ctrl.ctrl->mm_ptr)[0] + 1) );
+    uint64_t sq_size = (cqr) ?
+        ((MAX_SQ_ENTRIES_64K <= ((((volatile uint16_t*) ctrl.ctrl->mm_ptr)[0] + 1) )) ? MAX_SQ_ENTRIES_64K :  ((((volatile uint16_t*) ctrl.ctrl->mm_ptr)[0] + 1) ) ) :
+        ((((volatile uint16_t*) ctrl.ctrl->mm_ptr)[0] + 1) );
+    uint64_t cq_size = (cqr) ?
+        ((MAX_CQ_ENTRIES_64K <= ((((volatile uint16_t*) ctrl.ctrl->mm_ptr)[0] + 1) )) ? MAX_CQ_ENTRIES_64K :  ((((volatile uint16_t*) ctrl.ctrl->mm_ptr)[0] + 1) ) ) :
+        ((((volatile uint16_t*) ctrl.ctrl->mm_ptr)[0] + 1) );
 
     bool sq_need_prp = (!cqr) || (sq_size > MAX_SQ_ENTRIES_64K);
     bool cq_need_prp = (!cqr) || (cq_size > MAX_CQ_ENTRIES_64K);
 
     size_t sq_mem_size =  sq_size * sizeof(nvm_cmd_t) + sq_need_prp*(64*1024);
     size_t cq_mem_size =  cq_size * sizeof(nvm_cpl_t) + cq_need_prp*(64*1024);
+
+    std::cout << sq_size << "\t" << sq_mem_size << std::endl;
     //size_t queueMemSize = ctrl.info.page_size * 2;
     //size_t prpListSize = ctrl.info.page_size * settings.numThreads * (settings.doubleBuffered + 1);
-    size_t prp_mem_size = sq_mem_size * (4096) * 2;
+    size_t prp_mem_size = sq_size * (4096) * 2;
     // qmem->vaddr will be already a device pointer after the following call
     qp.sq_mem = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(sq_mem_size, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
     qp.cq_mem = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(cq_mem_size, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
@@ -81,7 +90,7 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
         for (size_t i = 0; i < iters; i++) {
             size_t page_64  = i/(64*1024);
             size_t page_4 = i%(64*1024/ctrl.ctrl->page_size);
-            cpu_vaddrs[i] = qp.cq_mem.get()->ioaddrs[1] + (page_4 * ctrl.ctrl->page_size);
+            cpu_vaddrs[i] = qp.cq_mem.get()->ioaddrs[1 + page_64] + (page_4 * ctrl.ctrl->page_size);
         }
 
         if (qp.cq_mem.get()->vaddr) {
@@ -100,7 +109,7 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
         for (size_t i = 0; i < iters; i++) {
             size_t page_64  = i/(64*1024);
             size_t page_4 = i%(64*1024/ctrl.ctrl->page_size);
-            cpu_vaddrs[i] = qp.sq_mem.get()->ioaddrs[1] + (page_4 * ctrl.ctrl->page_size);
+            cpu_vaddrs[i] = qp.sq_mem.get()->ioaddrs[1 + page_64] + (page_4 * ctrl.ctrl->page_size);
         }
 
         if (qp.sq_mem.get()->vaddr) {
@@ -113,7 +122,8 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
     }
 
     // Create completion queue
-    int status = nvm_admin_cq_create(ctrl.aq_ref, &qp.cq, qp_id, qp.cq_mem.get(), 0, 0, cq_need_prp);
+    // (nvm_aq_ref ref, nvm_queue_t* cq, uint16_t id, const nvm_dma_t* dma, size_t offset, size_t qs, bool need_prp = false)
+    int status = nvm_admin_cq_create(ctrl.aq_ref, &qp.cq, qp_id, qp.cq_mem.get(), 0, cq_size, cq_need_prp);
     if (!nvm_ok(status))
     {
         throw error(string("Failed to create completion queue: ") + nvm_strerror(status));
@@ -129,11 +139,13 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
     qp.cq.db = (volatile uint32_t*) devicePtr;
 
     // Create submission queue
-    status = nvm_admin_sq_create(ctrl.aq_ref, &qp.sq, &qp.cq, qp_id, qp.sq_mem.get(), 0, 0, sq_need_prp);
+    //  nvm_admin_sq_create(nvm_aq_ref ref, nvm_queue_t* sq, const nvm_queue_t* cq, uint16_t id, const nvm_dma_t* dma, size_t offset, size_t qs, bool need_prp = false)
+    status = nvm_admin_sq_create(ctrl.aq_ref, &qp.sq, &qp.cq, qp_id, qp.sq_mem.get(), 0, sq_size, sq_need_prp);
     if (!nvm_ok(status))
     {
         throw error(string("Failed to create submission queue: ") + nvm_strerror(status));
     }
+
 
     // Get a valid device pointer for SQ doorbell
     err = cudaHostGetDevicePointer(&devicePtr, (void*) qp.sq.db, 0);

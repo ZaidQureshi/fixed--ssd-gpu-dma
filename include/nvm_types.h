@@ -1,13 +1,11 @@
 #ifndef __NVM_TYPES_H__
 #define __NVM_TYPES_H__
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <stddef.h>
 #include <stdint.h>
+#include <simt/atomic>
 
-#ifndef __CUDACC__
+#ifndef __CUDA__
 #define __align__(x)
 #endif
 
@@ -48,6 +46,7 @@ typedef struct nvm_admin_reference* nvm_aq_ref;
 
 
 
+
 /*
  * DMA mapping descriptor.
  *
@@ -65,7 +64,7 @@ typedef struct nvm_admin_reference* nvm_aq_ref;
  * Note: This structure will be allocated by the API and needs to be released
  *       by the API.
  */
-typedef struct __align__(32) 
+typedef struct __align__(32)
 {
     void*                   vaddr;          // Virtual address to start of region (NB! can be NULL)
     int8_t                  local;          // Is this local memory
@@ -77,6 +76,13 @@ typedef struct __align__(32)
 
 
 
+
+typedef struct __align__(128)
+{
+    simt::atomic<uint32_t, simt::thread_scope_system>  val;
+    uint8_t pad[124];
+} __attribute__((aligned (128))) padded_struct;
+
 /* 
  * NVM queue descriptor.
  *
@@ -87,20 +93,36 @@ typedef struct __align__(32)
  *
  * Note: This descriptor represents both completion and submission queues.
  */
-typedef struct __align__(64) 
+typedef struct __align__(128)
 {
+    simt::atomic<uint32_t, simt::thread_scope_system> head;
+    uint8_t pad0[128];
+    simt::atomic<uint32_t, simt::thread_scope_system> tail;
+    uint8_t pad1[128];
+    /* padded_struct<simt::atomic<uint32_t, simt::thread_scope_system>> head; */
+    /* padded_struct<simt::atomic<uint32_t, simt::thread_scope_system>> tail; */
+    simt::atomic<uint32_t, simt::thread_scope_system> in_ticket;
+    uint8_t pad2[128];
+    simt::atomic<uint32_t, simt::thread_scope_system> cid_ticket;
+    uint8_t pad3[128];
+    padded_struct* tickets;
+
+    padded_struct* head_mark;
+    padded_struct* tail_mark;
+    padded_struct* cid;
+    uint32_t qs_minus_1;
+    uint32_t qs_log2;
+    
     uint16_t                no;             // Queue number (must be unique per SQ/CQ pair)
     uint16_t                es;             // Queue entry size
     uint32_t                qs;             // Queue size (number of entries)
-    uint16_t                head;           // Queue's head pointer
-    uint16_t                tail;           // Queue's tail pointer
     int8_t                  phase;          // Current phase tag
     int8_t                  local;          // Is the queue allocated in local memory
     uint32_t                last;           // Used internally to check db writes
     volatile uint32_t*      db;             // Pointer to doorbell register (NB! write only)
     volatile void*          vaddr;          // Virtual address to start of queue memory
     uint64_t                ioaddr;         // Physical/IO address to start of queue memory
-} __attribute__((aligned (64))) nvm_queue_t;
+} __attribute__((aligned (128))) nvm_queue_t;
 
 
 
@@ -182,11 +204,8 @@ struct nvm_ns_info
 
 
 
-#ifndef __CUDACC__
+#ifndef __CUDA__
 #undef __align__
 #endif
 
-#ifdef __cplusplus
-}
-#endif
 #endif /* __NVM_TYPES_H__ */

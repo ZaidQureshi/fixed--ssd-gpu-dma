@@ -1,8 +1,5 @@
 #ifndef __NVM_RPC_H__
 #define __NVM_RPC_H__
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <nvm_types.h>
 #include <stdint.h>
@@ -51,8 +48,4 @@ void nvm_rpc_unbind(nvm_aq_ref ref);
 int nvm_raw_rpc(nvm_aq_ref ref, nvm_cmd_t* cmd, nvm_cpl_t* cpl);
 
 
-
-#ifdef __cplusplus
-}
-#endif
 #endif /* #ifdef __NVM_RPC_H__ */

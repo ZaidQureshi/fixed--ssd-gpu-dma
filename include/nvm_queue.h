@@ -1,9 +1,10 @@
 #ifndef __NVM_QUEUE_H__
 #define __NVM_QUEUE_H__
 
-#ifndef __CUDACC__
+#ifndef __CUDA__
 #define __device__
 #define __host__
+#define __syncthreads() ()
 #endif
 
 #include <nvm_util.h>
@@ -23,9 +24,7 @@
  *
  * Queue memory must be physically contiguous.
  */
-#ifdef __cplusplus
-extern "C" {
-#endif
+
 __host__
 int nvm_queue_clear(nvm_queue_t* q,            // NVM queue descriptor
                     const nvm_ctrl_t* ctrl,    // NVM controller handle
@@ -35,9 +34,7 @@ int nvm_queue_clear(nvm_queue_t* q,            // NVM queue descriptor
                     bool local,                // Is this local or remote memory
                     volatile void* vaddr,      // Virtual address to queue memory
                     uint64_t ioaddr);          // Bus address to queue memory (as seen from the controller)
-#ifdef __cplusplus
-}
-#endif
+
 
 
 /*
@@ -47,14 +44,9 @@ int nvm_queue_clear(nvm_queue_t* q,            // NVM queue descriptor
  *       not yet deleted, as it will lead to inconsistent state for the
  *       controller.
  */
-#ifdef __cplusplus
-extern "C" {
-#endif
+
 __host__
 void nvm_queue_reset(nvm_queue_t* q);
-#ifdef __cplusplus
-}
-#endif
 
 
 
@@ -107,7 +99,7 @@ nvm_cmd_t* nvm_sq_enqueue(nvm_queue_t* sq)
  * Note: The pointer should be stored and used as the last parameter for the
  *       succeeding call.
  */
-#ifdef __CUDACC__
+#ifdef __CUDA__
 __device__ static inline
 nvm_cmd_t* nvm_sq_enqueue_n(nvm_queue_t* sq, nvm_cmd_t* last, uint16_t n, uint16_t i)
 {
@@ -141,7 +133,7 @@ nvm_cmd_t* nvm_sq_enqueue_n(nvm_queue_t* sq, nvm_cmd_t* last, uint16_t n, uint16
     }
 
     // Wait state updating here
-    __syncthreads();
+    //__syncthreads();
 
     return cmd;
 }
@@ -221,14 +213,8 @@ nvm_cpl_t* nvm_cq_dequeue(nvm_queue_t* cq)
  * Returns a pointer to the completion entry, or NULL if the queue is empty or
  * on timeout.
  */
-#ifdef __cplusplus
-extern "C" {
-#endif
 __host__
 nvm_cpl_t* nvm_cq_dequeue_block(nvm_queue_t* cq, uint64_t timeout);
-#ifdef __cplusplus
-}
-#endif
 
 
 
@@ -296,9 +282,10 @@ void nvm_cq_update(nvm_queue_t* cq)
 }
 
 
-#ifndef __CUDACC__
+#ifndef __CUDA__
 #undef __device__
 #undef __host__
+#undef __syncthreads()
 #endif
 
 #endif /* __NVM_QUEUE_H__ */

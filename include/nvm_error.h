@@ -1,8 +1,5 @@
 #ifndef __NVM_ERROR_H__
 #define __NVM_ERROR_H__
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <stdint.h>
 #include <nvm_types.h>
@@ -65,8 +62,5 @@ extern "C" {
 const char* nvm_strerror(int status);
 
 
-    
-#ifdef __cplusplus
-}
-#endif
+
 #endif /* __NVM_ERROR_H__ */

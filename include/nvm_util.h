@@ -222,36 +222,21 @@ void _nvm_wcb_flush()
 #define NVM_DEFAULT_CID(sq)         ((uint16_t) ((sq)->tail + (!(sq)->phase) * (sq)->qs))
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 /*
  * Get controller associated with admin queue-pair reference.
  */
 const nvm_ctrl_t* nvm_ctrl_from_aq_ref(nvm_aq_ref ref);
-#ifdef __cplusplus
-}
-#endif
 
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 /*
  * Get controller associated with DMA window
  */
 const nvm_ctrl_t* nvm_ctrl_from_dma(const nvm_dma_t* dma);
-#ifdef __cplusplus
-}
-#endif
 
 
 
 #if defined( __DIS_CLUSTER__ )
-#ifdef __cplusplus
-extern "C" {
-#endif
 /*
  * Get cluster node identifier from map.
  */
@@ -263,9 +248,6 @@ uint32_t nvm_dis_node_from_dma(const nvm_dma_t* dma);
  */
 uint32_t nvm_dis_node_from_ctrl(const nvm_ctrl_t* ctrl);
 
-#ifdef __cplusplus
-}
-#endif
 #endif
 
 

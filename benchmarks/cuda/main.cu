@@ -20,6 +20,7 @@
 #include "settings.h"
 #include "event.h"
 #include "queue.h"
+#include "nvm_parallel_queue.h"
 #ifdef __DIS_CLUSTER__
 #include <sisci_api.h>
 #endif
@@ -41,45 +42,6 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-#ifdef __DIS_CLUSTER__
-    sci_error_t err;
-    SCIInitialize(0, &err);
-    if (err != SCI_ERR_OK)
-    {
-        fprintf(stderr, "Failed to initialize SISCI: %s\n", SCIGetErrorString(err));
-        return 1;
-    }
-
-    sci_desc_t sd;
-    SCIOpen(&sd, 0, &err);
-    if (err != SCI_ERR_OK)
-    {
-        fprintf(stderr, "Failed to open SISCI descriptor: %s\n", SCIGetErrorString(err));
-        return 1;
-    }
-
-    sci_smartio_device_t cudaDev;
-    if (settings.cudaDeviceId != 0)
-    {
-        SCIBorrowDevice(sd, &cudaDev, settings.cudaDeviceId, 0, &err);
-        if (err != SCI_ERR_OK)
-        {
-            fprintf(stderr, "Failed to get SmartIO device reference for CUDA device: %s\n", SCIGetErrorString(err));
-            return 1;
-        }
-    }
-    else
-    {
-        SCIRegisterPCIeRequester(sd, settings.adapter, settings.bus, settings.devfn, SCI_FLAG_PCIE_REQUESTER_GLOBAL, &err);
-        if (err != SCI_ERR_OK)
-        {
-            fprintf(stderr, "Failed to register PCI requester: %s\n", SCIGetErrorString(err));
-            SCIClose(sd, 0, &err);
-            return 1;
-        }
-        sleep(1); // FIXME: Hack due to race condition in SmartIO
-    }
-#endif
 
     cudaDeviceProp properties;
     if (cudaGetDeviceProperties(&properties, settings.cudaDevice) != cudaSuccess)
@@ -90,9 +52,16 @@ int main(int argc, char** argv) {
 
     try {
         Controller ctrl(settings.controllerPath, settings.nvmNamespace);
-        auto dma = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(64*1024*10, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
+        cudaError_t err = cudaHostRegister((void*) ctrl.ctrl->mm_ptr, NVM_CTRL_MEM_MINSIZE, cudaHostRegisterIoMemory);
+        if (err != cudaSuccess)
+        {
+            throw error(string("Unexpected error while mapping IO memory (cudaHostRegister): ") + cudaGetErrorString(err));
+        }
+        //auto dma = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(64*1024*10, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
 
-        std::cout << dma.get()->vaddr << std::endl;
+        //std::cout << dma.get()->vaddr << std::endl;
+        QueuePair qp;
+        prepareQueuePair(qp, ctrl, settings, 1);
 
     }
     catch (const error& e) {
@@ -160,10 +129,10 @@ void moveBytes(const void* src, size_t srcOffset, void* dst, size_t dstOffset, s
     const ulong4* source = (ulong4*) (((const unsigned char*) src) + srcOffset);
     ulong4* destination = (ulong4*) (((unsigned char*) dst) + dstOffset);
 
-//    for (size_t i = 0, n = size / sizeof(ulong4); i < n; i += numThreads)
-//    {
-//        destination[i + threadNum] = source[i + threadNum];
-//    }
+    for (size_t i = 0, n = size / sizeof(ulong4); i < n; i += numThreads)
+    {
+        destination[i + threadNum] = source[i + threadNum];
+    }
 }
 
 
@@ -181,7 +150,7 @@ void waitForIoCompletion(nvm_queue_t* cq, nvm_queue_t* sq, int* errCode)
 
         if (!NVM_ERR_OK(cpl))
         {
-            //*errCount = *errCount + 1;
+            // *errCount = *errCount + 1;
             *errCode = NVM_ERR_PACK(cpl, 0);
         }
     }
