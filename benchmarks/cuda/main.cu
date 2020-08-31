@@ -33,7 +33,7 @@ using std::string;
 
 
 
-__device__ read_data(page_cache_t* pc, QueuePair* qp, const uint64_t starting_byte, const uint64_t num_bytes, const uint64_t pc_entry) {
+__device__ void read_data(page_cache_t* pc, QueuePair* qp, const uint64_t starting_byte, const uint64_t num_bytes, const uint64_t pc_entry) {
     uint64_t starting_lba = starting_byte >> qp->block_size_log;
     //uint64_t rem_bytes = starting_byte & qp->block_size_minus_1;
     //uint64_t end_lba = CEIL((starting_byte+num_bytes), qp->block_size);
@@ -41,7 +41,7 @@ __device__ read_data(page_cache_t* pc, QueuePair* qp, const uint64_t starting_by
     uint64_t n_blocks = CEIL(num_bytes, qp->block_size, qp->block_size_log);
 
     nvm_cmd_t cmd;
-    uint16_t cid = get_cid(qp->sq);
+    uint16_t cid = get_cid(&qp->sq);
     nvm_cmd_header(&cmd, cid, NVM_IO_READ, qp->nvmNamespace);
     uint64_t prp1 = pc->prp1[pc_entry];
     uint64_t prp2 = 0;
@@ -50,11 +50,11 @@ __device__ read_data(page_cache_t* pc, QueuePair* qp, const uint64_t starting_by
 
     nvm_cmd_data_ptr(&cmd, prp1, prp2);
     nvm_cmd_rw_blks(&cmd, starting_lba, n_blocks);
-    uint16_t sq_pos = sq_enqueue(qp->sq, &cmd);
-    uint32_t cq_pos = cq_poll(qp->cq, cid);
-    sq_dequeue(qp->sq, sq_pos);
-    cq_dequeue(qp->cq, cq_pos);
-    put_cid(qp->sq, cid);
+    uint16_t sq_pos = sq_enqueue(&qp->sq, &cmd);
+    uint32_t cq_pos = cq_poll(&qp->cq, cid);
+    sq_dequeue(&qp->sq, sq_pos);
+    cq_dequeue(&qp->cq, cq_pos);
+    put_cid(&qp->sq, cid);
 
 }
 __global__
@@ -64,7 +64,7 @@ void access_kernel(QueuePair* qp, page_cache_t* pc, const uint32_t req_size, con
     unsigned long long v = atomicAdd(req_count, 1);
 
     if (v < n_reqs) {
-        read(pc, qp, i*512, 512, v);
+        read(pc, qp, v*512, 512, v);
     }
 }
 
@@ -117,9 +117,9 @@ int main(int argc, char** argv) {
 
 
 
-        uint64_t* d_req_count;
-        cuda_err_chk(cudaMalloc(&d_req_count, sizeof(uint64_t)));
-        cuda_err_chk(cudaMemset(d_req_count, 0, sizeof(uint64_t)));
+        unsigned long long* d_req_count;
+        cuda_err_chk(cudaMalloc(&d_req_count, sizeof(unsigned long long)));
+        cuda_err_chk(cudaMemset(d_req_count, 0, sizeof(unsigned long long)));
 
         access_kernel<<<1,1>>>(d_qp, d_pc, 512, 1, d_req_count);
 
