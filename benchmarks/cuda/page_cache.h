@@ -6,7 +6,7 @@
 #include "buffer.h"
 #include "ctrl.h"
 #include "settings.h"
-#incldue <iostream>
+#include <iostream>
 
 /*
 
