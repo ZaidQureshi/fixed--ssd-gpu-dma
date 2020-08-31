@@ -23,10 +23,10 @@ using std::string;
 struct __align__(128) QueuePair
 {
     uint32_t            pageSize;
-    uint32_t            blockSize;
+    uint32_t            block_size;
+    uint32_t            block_size_log;
+    uint32_t            block_size_minus_1;
     uint32_t            nvmNamespace;
-    uint32_t            pagesPerChunk;
-    bool                doubleBuffered;
     //void*               prpList;
     //uint64_t*           prpListIoAddrs;
     nvm_queue_t         sq;
@@ -109,7 +109,9 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
 
     // Set members
     qp.pageSize = ctrl.info.page_size;
-    qp.blockSize = ctrl.ns.lba_data_size;
+    qp.block_size = ctrl.ns.lba_data_size;
+    qp.block_size_minus_1 = ctrl.ns.lba_data_size-1;
+    qp.block_size_log = std::log2(ctrl.ns.lba_data_size);
     qp.nvmNamespace = ctrl.ns.ns_id;
     qp.pagesPerChunk = settings.numPages;
     qp.doubleBuffered = settings.doubleBuffered;

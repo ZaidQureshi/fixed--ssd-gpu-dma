@@ -31,12 +31,43 @@
 using error = std::runtime_error;
 using std::string;
 
-/*
-__global__
-void access_kernel(QueuePair* qp, uint32_t req_size, Array* a) {
+
+
+__device__ read_data(page_cache_t* pc, QueuePair* qp, const uint64_t starting_byte, const uint64_t num_bytes, const uint64_t pc_entry) {
+    uint64_t starting_lba = starting_byte >> qp->block_size_log;
+    //uint64_t rem_bytes = starting_byte & qp->block_size_minus_1;
+    //uint64_t end_lba = CEIL((starting_byte+num_bytes), qp->block_size);
+
+    uint64_t n_blocks = CEIL(num_bytes, qp->block_size, qp->block_size_log);
+
+    nvm_cmd_t cmd;
+    uint16_t cid = get_cid(qp->sq);
+    nvm_cmd_header(&cmd, cid, NVM_IO_READ, qp->nvmNamespace);
+    uint64_t prp1 = pc->prp1[pc_entry];
+    uint64_t prp2 = 0;
+    if (pc->prps)
+        prp2 = pc->prp2[pc_entry];
+
+    nvm_cmd_data_ptr(&cmd, prp1, prp2);
+    nvm_cmd_rw_blks(&cmd, starting_lba, n_blocks);
+    uint16_t sq_pos = sq_enqueue(qp->sq, &cmd);
+    uint32_t cq_pos = cq_poll(qp->cq, cid);
+    sq_dequeue(qp->sq, sq_pos);
+    cq_dequeue(qp->cq, cq_pos);
+    put_cid(qp->sq, cid);
 
 }
-*/
+__global__
+void access_kernel(QueuePair* qp, page_cache_t* pc, const uint32_t req_size, const uint32_t n_reqs, unsigned long long* req_count) {
+    uint64_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    unsigned long long v = atomicAdd(req_count, 1);
+
+    if (v < n_reqs) {
+        read(pc, qp, i*512, 512, v);
+    }
+}
+
 int main(int argc, char** argv) {
 
     Settings settings;
@@ -72,7 +103,9 @@ int main(int argc, char** argv) {
         QueuePair h_qp;
         prepareQueuePair(h_qp, ctrl, settings, 1);
         //const uint32_t ps, const uint64_t np, const uint64_t c_ps, const Settings& settings, const Controller& ctrl)
-        page_cache_t h_pc(512, 1, settings, ctrl);
+        uint64_t page_size = 512;
+        uint64_t n_pages = 1;
+        page_cache_t h_pc(page_size, n_pages, settings, ctrl);
 
         QueuePair* d_qp;
         page_cache_t* d_pc;
@@ -82,10 +115,23 @@ int main(int argc, char** argv) {
 
         cuda_err_chk(cudaMemcpy(d_pc, &h_pc, sizeof(page_cache_t), cudaMemcpyHostToDevice));
 
+
+
+        uint64_t* d_req_count;
+        cuda_err_chk(cudaMalloc(&d_req_count, sizeof(uint64_t)));
+        cuda_err_chk(cudaMemset(d_req_count, 0, sizeof(uint64_t)));
+
+        access_kernel<<<1,1>>>(d_qp, d_pc, 512, 1, d_req_count);
+
+        uint8_t* ret_array = (uint8_t*) malloc(n_pages*page_size);
+
+        cuda_err_chk(cudaMemcpy(ret_array, h_pc.pages_dma.get()->vaddr, sizeof(page_size*n_pages), cudaMemcpyHostToDevice));
+        hexdump(ret_array, n_pages*page_size);
+
         cudaFree(d_qp);
         cudaFree(d_pc);
-
-
+        cudaFree(d_req_count);
+        free(ret_array);
 
         std::cout << "END\n";
 

@@ -233,9 +233,13 @@ struct page_cache_t {
     BufferPtr prp1_buf;
     BufferPtr prp2_buf;
     //BufferPtr prp2_list_buf;
+    bool prps;
+
+
 
 page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, const Controller& ctrl)
     : page_size(ps), n_pages(np), ctrl_page_size(ctrl.ctrl->page_size) {
+        page_ticket.val = 0;
         uint64_t cache_size = ps*np;
         pages_dma = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(cache_size, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
         base_addr = (uint8_t*) pages_dma.get()->vaddr;
@@ -253,6 +257,7 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
             cuda_err_chk(cudaMemcpy(prp1, temp, np * sizeof(uint64_t), cudaMemcpyHostToDevice));
 
             free(temp);
+            prps = false;
         }
 
         else if ((ps > pages_dma.get()->page_size) && (ps <= (pages_dma.get()->page_size * 2))) {
@@ -271,6 +276,7 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
 
             free(temp1);
             free(temp2);
+            prps = true;
         }
         else {
             prp1_buf = createBuffer(np * sizeof(uint64_t), settings.cudaDevice);
@@ -298,6 +304,7 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
 
             free(temp1);
             free(temp2);
+            prps = true;
         }
 
     }

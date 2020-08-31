@@ -74,7 +74,7 @@ uint32_t move_head(nvm_queue_t* q, uint32_t cur_head, uint32_t pos, bool is_sq) 
 
 }
 __device__
-void sq_enqueue(nvm_queue_t* sq, nvm_cmd_t* cmd) {
+uint16_t sq_enqueue(nvm_queue_t* sq, nvm_cmd_t* cmd) {
 
     uint32_t mask = __activemask();
     uint32_t active_count = __popc(mask);
@@ -123,6 +123,8 @@ void sq_enqueue(nvm_queue_t* sq, nvm_cmd_t* cmd) {
         *(sq->db) = new_db;
         sq->tail.store(new_tail, simt::memory_order_release);
     }
+
+    return pos;
 
 }
 
