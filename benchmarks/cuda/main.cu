@@ -21,6 +21,8 @@
 #include "event.h"
 #include "queue.h"
 #include "nvm_parallel_queue.h"
+#include "page_cache.h"
+#include "util.h"
 #include <iostream>
 #ifdef __DIS_CLUSTER__
 #include <sisci_api.h>
@@ -28,6 +30,12 @@
 
 using error = std::runtime_error;
 using std::string;
+
+
+__global__
+void access_kernel(QueuePair* qp, uint32_t req_size, Array* a) {
+
+}
 
 int main(int argc, char** argv) {
 
@@ -61,8 +69,24 @@ int main(int argc, char** argv) {
         //auto dma = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(64*1024*10, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
 
         //std::cout << dma.get()->vaddr << std::endl;
-        QueuePair qp;
-        prepareQueuePair(qp, ctrl, settings, 1);
+        QueuePair h_qp;
+        prepareQueuePair(h_qp, ctrl, settings, 1);
+        //const uint32_t ps, const uint64_t np, const uint64_t c_ps, const Settings& settings, const Controller& ctrl)
+        page_cache_t h_pc(512, 1, settings, ctrl);
+
+        QueuePair* d_qp;
+        page_cache_t* d_pc;
+        cuda_err_chk(cudaMalloc(&d_qp, sizeof(QueuePair)));
+        cuda_err_chk(cudaMalloc(&d_pc, sizeof(page_cache_t)));
+        cuda_err_chk(cudaMemcpy(d_qp, &h_qp, sizeof(QueuePair), cudaMemcpyHostToDevice));
+
+        cuda_err_chk(cudaMemcpy(d_pc, &h_pc, sizeof(page_cache_t), cudaMemcpyHostToDevice));
+
+        cudaFree(d_qp);
+        cudaFree(d_pc);
+
+
+
         std::cout << "END\n";
 
     }

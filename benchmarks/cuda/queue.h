@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <string>
 #include <iostream>
+#include <cmath>
 
 
 using error = std::runtime_error;
@@ -26,8 +27,8 @@ struct __align__(128) QueuePair
     uint32_t            nvmNamespace;
     uint32_t            pagesPerChunk;
     bool                doubleBuffered;
-    void*               prpList;
-    uint64_t*           prpListIoAddrs;
+    //void*               prpList;
+    //uint64_t*           prpListIoAddrs;
     nvm_queue_t         sq;
     nvm_queue_t         cq;
     uint16_t            qp_id;
@@ -57,13 +58,18 @@ void init_gpu_specific_struct(const Settings& settings, QueuePair& qp) {
     qp.sq.head_mark = (padded_struct*) qp.sq_head_mark.get();
     qp.sq.tail_mark = (padded_struct*) qp.sq_tail_mark.get();
     qp.sq.cid = (padded_struct*) qp.sq_cid.get();
-    
+    qp.sq.qs_minus_1 = qp.sq.qs - 1;
+    qp.sq.qs_log2 = (uint32_t) std::log2(qp.sq.qs);
+
+
     qp.cq_tickets = createBuffer(qp.cq.qs * sizeof(padded_struct), settings.cudaDevice);
     qp.cq_head_mark = createBuffer(qp.cq.qs * sizeof(padded_struct), settings.cudaDevice);
     qp.cq_tail_mark = createBuffer(qp.cq.qs * sizeof(padded_struct), settings.cudaDevice);
     qp.cq.tickets = (padded_struct*) qp.cq_tickets.get();
     qp.cq.head_mark = (padded_struct*) qp.cq_head_mark.get();
     qp.cq.tail_mark = (padded_struct*) qp.cq_tail_mark.get();
+    qp.cq.qs_minus_1 = qp.cq.qs - 1;
+    qp.cq.qs_log2 = (uint32_t) std::log2(qp.cq.qs);
 
 
 }
@@ -98,7 +104,7 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
     // qmem->vaddr will be already a device pointer after the following call
     qp.sq_mem = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(sq_mem_size, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
     qp.cq_mem = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(cq_mem_size, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
-    qp.prp_mem = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(prp_mem_size, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
+    //qp.prp_mem = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(prp_mem_size, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
 
 
     // Set members
@@ -108,8 +114,8 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
     qp.pagesPerChunk = settings.numPages;
     qp.doubleBuffered = settings.doubleBuffered;
 
-    qp.prpList = NVM_DMA_OFFSET(qp.prp_mem, 0);
-    qp.prpListIoAddrs = qp.prp_mem->ioaddrs;
+    //qp.prpList = NVM_DMA_OFFSET(qp.prp_mem, 0);
+    //qp.prpListIoAddrs = qp.prp_mem->ioaddrs;
     qp.qp_id = qp_id;
 
     if (cq_need_prp) {
@@ -123,7 +129,7 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
         }
 
         if (qp.cq_mem.get()->vaddr) {
-            cudaMemcpy(qp.cq_mem.get()->vaddr, cpu_vaddrs, 64*1024, cudaMemcpyHostToDevice);
+            cuda_err_chk(cudaMemcpy(qp.cq_mem.get()->vaddr, cpu_vaddrs, 64*1024, cudaMemcpyHostToDevice));
         }
 
         qp.cq_mem.get()->vaddr = (void*)((uint64_t)qp.cq_mem.get()->vaddr + 64*1024);
@@ -142,7 +148,7 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
         }
 
         if (qp.sq_mem.get()->vaddr) {
-            cudaMemcpy(qp.sq_mem.get()->vaddr, cpu_vaddrs, 64*1024, cudaMemcpyHostToDevice);
+            cuda_err_chk(cudaMemcpy(qp.sq_mem.get()->vaddr, cpu_vaddrs, 64*1024, cudaMemcpyHostToDevice));
         }
 
         qp.sq_mem.get()->vaddr = (void*)((uint64_t)qp.sq_mem.get()->vaddr + 64*1024);

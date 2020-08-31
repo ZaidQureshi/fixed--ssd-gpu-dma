@@ -6,7 +6,7 @@
 #define LOCKED   1
 #define UNLOCKED 0
 
-__forceinline__ __device__ uint32_t get_id(uint32_t x, uint32_t y) {
+__forceinline__ __device__ uint64_t get_id(uint64_t x, uint64_t y) {
     return (x >> y) * 2;
 }
 
@@ -24,7 +24,7 @@ uint16_t get_cid(nvm_queue_t* sq) {
 
     do {
         id = sq->cid_ticket.fetch_add(1, simt::memory_order_acquire);
-        uint32_t old = sq->cid[id].val.exchange(LOCKED, simt::memory_order_acquire);
+        uint64_t old = sq->cid[id].val.exchange(LOCKED, simt::memory_order_acquire);
         not_found = old == LOCKED;
     } while (not_found);
 
@@ -64,7 +64,7 @@ uint32_t move_head(nvm_queue_t* q, uint32_t cur_head, uint32_t pos, bool is_sq) 
 
     bool pass = true;
     while (pass) {
-        uint32_t loc = (cur_head+count++)&q->qs_minus_1;
+        uint64_t loc = (cur_head+count++)&q->qs_minus_1;
         pass = (q->head_mark[loc].val.fetch_and(UNLOCKED, simt::memory_order_acquire)) == LOCKED;
         if (pass && is_sq)
             q->tickets[loc].val.fetch_or(1, simt::memory_order_release);
@@ -89,7 +89,7 @@ void sq_enqueue(nvm_queue_t* sq, nvm_cmd_t* cmd) {
     ticket += __popc(mask & ((1 << lane) - 1));
 
     uint32_t pos = ticket & (sq->qs_minus_1);
-    uint32_t id = get_id(ticket, sq->qs_log2);
+    uint64_t id = get_id(ticket, sq->qs_log2);
 
     while (sq->tickets[pos].val.load(simt::memory_order_acquire) != id)
         __nanosleep(100);
