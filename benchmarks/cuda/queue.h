@@ -113,8 +113,6 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
     qp.block_size_minus_1 = ctrl.ns.lba_data_size-1;
     qp.block_size_log = std::log2(ctrl.ns.lba_data_size);
     qp.nvmNamespace = ctrl.ns.ns_id;
-    qp.pagesPerChunk = settings.numPages;
-    qp.doubleBuffered = settings.doubleBuffered;
 
     //qp.prpList = NVM_DMA_OFFSET(qp.prp_mem, 0);
     //qp.prpListIoAddrs = qp.prp_mem->ioaddrs;

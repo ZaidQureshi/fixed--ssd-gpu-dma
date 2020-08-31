@@ -17,6 +17,10 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=f
 
 #define CEIL(X, Y, Z) ((X + Y - 1) >> Z)
 
+
+#ifndef HEXDUMP_COLS
+#define HEXDUMP_COLS 16
+#endif
 void hexdump(void *mem, unsigned int len)
 {
         unsigned int i, j;
