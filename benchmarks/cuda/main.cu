@@ -31,12 +31,12 @@
 using error = std::runtime_error;
 using std::string;
 
-
+/*
 __global__
 void access_kernel(QueuePair* qp, uint32_t req_size, Array* a) {
 
 }
-
+*/
 int main(int argc, char** argv) {
 
     Settings settings;
