@@ -189,7 +189,7 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
         throw error(string("Failed to get device pointer") + cudaGetErrorString(err));
     }
     qp.sq.db = (volatile uint32_t*) devicePtr;
-
+    std::cout << "Finish Making Queue\n";
     return;
 
 

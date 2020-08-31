@@ -121,18 +121,18 @@ int main(int argc, char** argv) {
         cuda_err_chk(cudaMalloc(&d_req_count, sizeof(unsigned long long)));
         cuda_err_chk(cudaMemset(d_req_count, 0, sizeof(unsigned long long)));
 
-        access_kernel<<<1,1>>>(d_qp, d_pc, 512, 1, d_req_count);
+       // access_kernel<<<1,1>>>(d_qp, d_pc, 512, 1, d_req_count);
 
         uint8_t* ret_array = (uint8_t*) malloc(n_pages*page_size);
 
         cuda_err_chk(cudaMemcpy(ret_array, h_pc.pages_dma.get()->vaddr, sizeof(page_size*n_pages), cudaMemcpyHostToDevice));
         hexdump(ret_array, n_pages*page_size);
-
+/*
         cudaFree(d_qp);
         cudaFree(d_pc);
         cudaFree(d_req_count);
         free(ret_array);
-
+*/
         std::cout << "END\n";
 
     }

@@ -6,6 +6,7 @@
 #include "buffer.h"
 #include "ctrl.h"
 #include "settings.h"
+#incldue <iostream>
 
 /*
 
@@ -235,7 +236,7 @@ struct page_cache_t {
     //BufferPtr prp2_list_buf;
     bool prps;
 
-
+    
 
 page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, const Controller& ctrl)
     : page_size(ps), n_pages(np), ctrl_page_size(ctrl.ctrl->page_size) {
@@ -308,6 +309,7 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
         }
 
     }
+    std::cout << "Finish Making Page Cache\n";
 
 
 };
