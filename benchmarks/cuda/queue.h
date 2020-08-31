@@ -14,7 +14,7 @@
 #include <string>
 #include <iostream>
 #include <cmath>
-
+#incldue "util.h"
 
 using error = std::runtime_error;
 using std::string;

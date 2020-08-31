@@ -250,7 +250,7 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
                     temp[i*how_many_in_one + j] = ((uint64_t)pages_dma.get()->ioaddrs[i]) + j*ps;
                 }
             }
-            cuda_err_chk(cudaMemcpy((prp1, temp, np * sizeof(uint64_t)), cudaMemcpyHostToDevice))
+            cuda_err_chk(cudaMemcpy(prp1, temp, np * sizeof(uint64_t), cudaMemcpyHostToDevice));
 
             free(temp);
         }
@@ -266,8 +266,8 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
                 temp1[i] = ((uint64_t)pages_dma.get()->ioaddrs[i]);
                 temp2[i] = ((uint64_t)pages_dma.get()->ioaddrs[i+1]);
             }
-            cuda_err_chk(cudaMemcpy((prp1, temp1, np * sizeof(uint64_t)), cudaMemcpyHostToDevice));
-            cuda_err_chk(cudaMemcpy((prp2, temp2, np * sizeof(uint64_t)), cudaMemcpyHostToDevice));
+            cuda_err_chk(cudaMemcpy(prp1, temp1, np * sizeof(uint64_t), cudaMemcpyHostToDevice));
+            cuda_err_chk(cudaMemcpy(prp2, temp2, np * sizeof(uint64_t), cudaMemcpyHostToDevice));
 
             free(temp1);
             free(temp2);
@@ -292,8 +292,8 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
                     temp3[(i/how_many_in_one)*uints_per_page + j] = ((uint64_t)pages_dma.get()->ioaddrs[i+1+j]);
                 }
             }
-            cuda_err_chk(cudaMemcpy((prp1, temp1, np * sizeof(uint64_t)), cudaMemcpyHostToDevice));
-            cuda_err_chk(cudaMemcpy((prp2, temp2, np * sizeof(uint64_t)), cudaMemcpyHostToDevice));
+            cuda_err_chk(cudaMemcpy(prp1, temp1, np * sizeof(uint64_t), cudaMemcpyHostToDevice));
+            cuda_err_chk(cudaMemcpy(prp2, temp2, np * sizeof(uint64_t), cudaMemcpyHostToDevice));
             cuda_err_chk(cudaMemcpy(prp_list_dma.get()->vaddr, temp3, prp_list_size, cudaMemcpyHostToDevice));
 
             free(temp1);
