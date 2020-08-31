@@ -33,7 +33,7 @@ using std::string;
 
 
 
-__device__ void read_data(page_cache_t* pc, QueuePair* qp, const uint64_t starting_byte, const uint64_t num_bytes, const uint64_t pc_entry) {
+__device__ void read_data(page_cache_t* pc, QueuePair* qp, const uint64_t starting_byte, const uint64_t num_bytes, const unsigned long long pc_entry) {
     uint64_t starting_lba = starting_byte >> qp->block_size_log;
     //uint64_t rem_bytes = starting_byte & qp->block_size_minus_1;
     //uint64_t end_lba = CEIL((starting_byte+num_bytes), qp->block_size);
@@ -64,7 +64,7 @@ void access_kernel(QueuePair* qp, page_cache_t* pc, const uint32_t req_size, con
     unsigned long long v = atomicAdd(req_count, 1);
 
     if (v < n_reqs) {
-        read(pc, qp, v*512, 512, v);
+        read_data(pc, qp, v*512, 512, v);
     }
 }
 
