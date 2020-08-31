@@ -2,7 +2,7 @@
 #define __UTIL_H__
 
 #include <cuda.h>
-#include <ctype>
+//#include <ctype>
 #include <cstdio>
 
 #define cuda_err_chk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
