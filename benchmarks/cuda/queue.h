@@ -45,7 +45,7 @@ struct __align__(128) QueuePair
     nvm_queue_t         cq;
     uint16_t            qp_id;
     QueuePairMeta*      meta;
-}
+};
 
 
 
@@ -56,7 +56,7 @@ void init_gpu_specific_struct(const Settings& settings, QueuePair& qp) {
     qp.meta->sq_tickets = createBuffer(qp.sq.qs * sizeof(padded_struct), settings.cudaDevice);
     qp.meta->sq_head_mark = createBuffer(qp.sq.qs * sizeof(padded_struct), settings.cudaDevice);
     qp.meta->sq_tail_mark = createBuffer(qp.sq.qs * sizeof(padded_struct), settings.cudaDevice);
-    qp.sq_cid = createBuffer(65536 * sizeof(padded_struct), settings.cudaDevice);
+    qp.meta->sq_cid = createBuffer(65536 * sizeof(padded_struct), settings.cudaDevice);
     qp.sq.tickets = (padded_struct*) qp.meta->sq_tickets.get();
     qp.sq.head_mark = (padded_struct*) qp.meta->sq_head_mark.get();
     qp.sq.tail_mark = (padded_struct*) qp.meta->sq_tail_mark.get();
@@ -82,7 +82,7 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
 
 __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Settings& settings, const uint16_t qp_id)
 {
-    qp->meta = (QueuePairMeta*) malloc(sizeof(QueuePairMeta));
+    qp.meta = (QueuePairMeta*) malloc(sizeof(QueuePairMeta));
 
 
     std::cout << "HERE\n";
@@ -134,7 +134,7 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
         }
 
         if (qp.meta->cq_mem.get()->vaddr) {
-            cuda_err_chk(cudaMemcpy(qp.meta->meta->cq_mem.get()->vaddr, cpu_vaddrs, 64*1024, cudaMemcpyHostToDevice));
+            cuda_err_chk(cudaMemcpy(qp.meta->cq_mem.get()->vaddr, cpu_vaddrs, 64*1024, cudaMemcpyHostToDevice));
         }
 
         qp.meta->cq_mem.get()->vaddr = (void*)((uint64_t)qp.meta->cq_mem.get()->vaddr + 64*1024);
