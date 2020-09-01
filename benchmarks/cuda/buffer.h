@@ -82,11 +82,53 @@ static void getDeviceMemory(int device, void*& bufferPtr, void*& devicePtr, size
     bufferPtr = (void*) (((uint64_t)bufferPtr) + (64*1024)  & 0xffffffffff0000);
 }
 
+static void getDeviceMemory2(int device, void*& bufferPtr, void*& devicePtr, size_t size)
+{
+    bufferPtr = nullptr;
+    devicePtr = nullptr;
+
+    cudaError_t err = cudaSetDevice(device);
+    if (err != cudaSuccess)
+    {
+        throw error(string("Failed to set CUDA device: ") + cudaGetErrorString(err));
+    }
+    err = cudaMalloc(&bufferPtr, size);
+    if (err != cudaSuccess)
+    {
+        throw error(string("Failed to allocate device memory: ") + cudaGetErrorString(err));
+    }
+
+    err = cudaMemset(bufferPtr, 0, size);
+    if (err != cudaSuccess)
+    {
+        cudaFree(bufferPtr);
+        throw error(string("Failed to clear device memory: ") + cudaGetErrorString(err));
+    }
+
+    cudaPointerAttributes attrs;
+    err = cudaPointerGetAttributes(&attrs, bufferPtr);
+    if (err != cudaSuccess)
+    {
+        cudaFree(bufferPtr);
+        throw error(string("Failed to get pointer attributes: ") + cudaGetErrorString(err));
+    }
+
+    devicePtr = (void*) (((uint64_t)attrs.devicePointer));
+    bufferPtr = (void*) (((uint64_t)bufferPtr));
+}
+
 static void getDeviceMemory(int device, void*& bufferPtr, size_t size)
 {
     void* notUsed = nullptr;
     getDeviceMemory(device, bufferPtr, notUsed, size);
 }
+
+static void getDeviceMemory2(int device, void*& bufferPtr, size_t size)
+{
+    void* notUsed = nullptr;
+    getDeviceMemory2(device, bufferPtr, notUsed, size);
+}
+
 
 
 
@@ -171,7 +213,7 @@ BufferPtr createBuffer(size_t size, int cudaDevice)
 
     void* bufferPtr = nullptr;
 
-    getDeviceMemory(cudaDevice, bufferPtr, size);
+    getDeviceMemory2(cudaDevice, bufferPtr, size);
 
     return BufferPtr(bufferPtr, [](void* ptr) { cudaFree(ptr); std::cout << "HERE2\n";});
 }

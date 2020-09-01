@@ -111,6 +111,7 @@ int main(int argc, char** argv) {
         page_cache_t* d_pc;
         cuda_err_chk(cudaMalloc(&d_qp, sizeof(QueuePair)));
         cuda_err_chk(cudaMalloc(&d_pc, sizeof(page_cache_t)));
+        std::cout << "cuda malloced\n";
         cuda_err_chk(cudaMemcpy(d_qp, &h_qp, sizeof(QueuePair), cudaMemcpyHostToDevice));
 
         cuda_err_chk(cudaMemcpy(d_pc, &h_pc, sizeof(page_cache_t), cudaMemcpyHostToDevice));
