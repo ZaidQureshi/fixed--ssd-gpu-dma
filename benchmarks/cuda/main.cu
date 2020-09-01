@@ -58,7 +58,7 @@ __device__ void read_data(page_cache_t* pc, QueuePair* qp, const uint64_t starti
 
 }
 __global__
-void access_kernel(QueuePair* qp, page_cache_t* pc, const uint32_t req_size, const uint32_t n_reqs, unsigned long long* req_count) {
+void access_kernel(QueuePair* qp, page_cache_t* pc,  uint32_t req_size, uint32_t n_reqs, unsigned long long* req_count) {
     uint64_t tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     unsigned long long v = atomicAdd(req_count, 1);
