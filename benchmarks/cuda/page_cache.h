@@ -249,6 +249,8 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
             prp1_buf = createBuffer(np * sizeof(uint64_t), settings.cudaDevice);
             prp1 = (uint64_t*) prp1_buf.get();
             uint64_t* temp = (uint64_t*) malloc(np * sizeof(uint64_t));
+            if (temp == NULL)
+                std::cout << "NULL\n";
             uint64_t how_many_in_one = pages_dma.get()->page_size/ps;
             for (size_t i = 0; i < pages_dma.get()->n_ioaddrs; i++) {
                 for (size_t j = 0; j < how_many_in_one; j++) {
@@ -257,7 +259,7 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
             }
             cuda_err_chk(cudaMemcpy(prp1, temp, np * sizeof(uint64_t), cudaMemcpyHostToDevice));
             std::cout << "HERE1\n";
-            free(temp);
+            //free(temp);
             std::cout << "HERE2\n";
             prps = false;
         }
