@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
         std::cout << "launched kernel\n";
         uint8_t* ret_array = (uint8_t*) malloc(n_pages*page_size);
 
-        cuda_err_chk(cudaMemcpy(ret_array, h_pc.pages_dma.get()->vaddr,page_size*n_pages, cudaMemcpyDeviceToHost));
+        cuda_err_chk(cudaMemcpy(ret_array, h_pc.meta->pages_dma.get()->vaddr,page_size*n_pages, cudaMemcpyDeviceToHost));
         hexdump(ret_array, n_pages*page_size);
 /*
         cudaFree(d_qp);

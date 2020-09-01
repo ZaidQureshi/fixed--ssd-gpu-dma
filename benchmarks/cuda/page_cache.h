@@ -248,7 +248,7 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
         meta = (page_cache_meta*)malloc(sizeof(page_cache_meta));
         page_ticket.val = 0;
         uint64_t cache_size = ps*np;
-        pages_dma = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(cache_size, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
+        meta->pages_dma = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(cache_size, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
         base_addr = (uint8_t*) pages_dma.get()->vaddr;
         std::cout << "HEREN\n";
         if (ps <= pages_dma.get()->page_size) {
