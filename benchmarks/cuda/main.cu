@@ -64,7 +64,7 @@ void access_kernel(QueuePair* qp, page_cache_t* pc, const uint32_t req_size, con
     unsigned long long v = atomicAdd(req_count, 1);
 
     if (v < n_reqs) {
-        printF("in threads\n");
+        printf("in threads\n");
        read_data(pc, qp, v*512, 512, v);
     }
 }
