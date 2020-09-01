@@ -19,6 +19,18 @@
 using error = std::runtime_error;
 using std::string;
 
+struct QueuePairMeta {
+    DmaPtr              sq_mem;
+    DmaPtr              cq_mem;
+    DmaPtr              prp_mem;
+    BufferPtr           sq_tickets;
+    BufferPtr           sq_head_mark;
+    BufferPtr           sq_tail_mark;
+    BufferPtr           sq_cid;
+    BufferPtr           cq_tickets;
+    BufferPtr           cq_head_mark;
+    BufferPtr           cq_tail_mark;
+};
 
 struct __align__(128) QueuePair
 {
@@ -32,17 +44,8 @@ struct __align__(128) QueuePair
     nvm_queue_t         sq;
     nvm_queue_t         cq;
     uint16_t            qp_id;
-    DmaPtr              sq_mem;
-    DmaPtr              cq_mem;
-    DmaPtr              prp_mem;
-    BufferPtr           sq_tickets;
-    BufferPtr           sq_head_mark;
-    BufferPtr           sq_tail_mark;
-    BufferPtr           sq_cid;
-    BufferPtr           cq_tickets;
-    BufferPtr           cq_head_mark;
-    BufferPtr           cq_tail_mark;
-};
+    QueuePairMeta*      meta;
+}
 
 
 
@@ -50,24 +53,24 @@ struct __align__(128) QueuePair
 #define MAX_CQ_ENTRIES_64K  (64*1024/16)
 
 void init_gpu_specific_struct(const Settings& settings, QueuePair& qp) {
-    qp.sq_tickets = createBuffer(qp.sq.qs * sizeof(padded_struct), settings.cudaDevice);
-    qp.sq_head_mark = createBuffer(qp.sq.qs * sizeof(padded_struct), settings.cudaDevice);
-    qp.sq_tail_mark = createBuffer(qp.sq.qs * sizeof(padded_struct), settings.cudaDevice);
+    qp.meta->sq_tickets = createBuffer(qp.sq.qs * sizeof(padded_struct), settings.cudaDevice);
+    qp.meta->sq_head_mark = createBuffer(qp.sq.qs * sizeof(padded_struct), settings.cudaDevice);
+    qp.meta->sq_tail_mark = createBuffer(qp.sq.qs * sizeof(padded_struct), settings.cudaDevice);
     qp.sq_cid = createBuffer(65536 * sizeof(padded_struct), settings.cudaDevice);
-    qp.sq.tickets = (padded_struct*) qp.sq_tickets.get();
-    qp.sq.head_mark = (padded_struct*) qp.sq_head_mark.get();
-    qp.sq.tail_mark = (padded_struct*) qp.sq_tail_mark.get();
-    qp.sq.cid = (padded_struct*) qp.sq_cid.get();
+    qp.sq.tickets = (padded_struct*) qp.meta->sq_tickets.get();
+    qp.sq.head_mark = (padded_struct*) qp.meta->sq_head_mark.get();
+    qp.sq.tail_mark = (padded_struct*) qp.meta->sq_tail_mark.get();
+    qp.sq.cid = (padded_struct*) qp.meta->sq_cid.get();
     qp.sq.qs_minus_1 = qp.sq.qs - 1;
     qp.sq.qs_log2 = (uint32_t) std::log2(qp.sq.qs);
 
 
-    qp.cq_tickets = createBuffer(qp.cq.qs * sizeof(padded_struct), settings.cudaDevice);
-    qp.cq_head_mark = createBuffer(qp.cq.qs * sizeof(padded_struct), settings.cudaDevice);
-    qp.cq_tail_mark = createBuffer(qp.cq.qs * sizeof(padded_struct), settings.cudaDevice);
-    qp.cq.tickets = (padded_struct*) qp.cq_tickets.get();
-    qp.cq.head_mark = (padded_struct*) qp.cq_head_mark.get();
-    qp.cq.tail_mark = (padded_struct*) qp.cq_tail_mark.get();
+    qp.meta->cq_tickets = createBuffer(qp.cq.qs * sizeof(padded_struct), settings.cudaDevice);
+    qp.meta->cq_head_mark = createBuffer(qp.cq.qs * sizeof(padded_struct), settings.cudaDevice);
+    qp.meta->cq_tail_mark = createBuffer(qp.cq.qs * sizeof(padded_struct), settings.cudaDevice);
+    qp.cq.tickets = (padded_struct*) qp.meta->cq_tickets.get();
+    qp.cq.head_mark = (padded_struct*) qp.meta->cq_head_mark.get();
+    qp.cq.tail_mark = (padded_struct*) qp.meta->cq_tail_mark.get();
     qp.cq.qs_minus_1 = qp.cq.qs - 1;
     qp.cq.qs_log2 = (uint32_t) std::log2(qp.cq.qs);
 
@@ -79,6 +82,8 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
 
 __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Settings& settings, const uint16_t qp_id)
 {
+    qp->meta = (QueuePairMeta*) malloc(sizeof(QueuePairMeta));
+
 
     std::cout << "HERE\n";
     uint64_t cap = ((volatile uint64_t*) ctrl.ctrl->mm_ptr)[0];
@@ -102,8 +107,8 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
     //size_t prpListSize = ctrl.info.page_size * settings.numThreads * (settings.doubleBuffered + 1);
     size_t prp_mem_size = sq_size * (4096) * 2;
     // qmem->vaddr will be already a device pointer after the following call
-    qp.sq_mem = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(sq_mem_size, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
-    qp.cq_mem = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(cq_mem_size, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
+    qp.meta->sq_mem = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(sq_mem_size, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
+    qp.meta->cq_mem = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(cq_mem_size, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
     //qp.prp_mem = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(prp_mem_size, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
 
 
@@ -125,14 +130,14 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
         for (size_t i = 0; i < iters; i++) {
             size_t page_64  = i/(64*1024);
             size_t page_4 = i%(64*1024/ctrl.ctrl->page_size);
-            cpu_vaddrs[i] = qp.cq_mem.get()->ioaddrs[1 + page_64] + (page_4 * ctrl.ctrl->page_size);
+            cpu_vaddrs[i] = qp.meta->cq_mem.get()->ioaddrs[1 + page_64] + (page_4 * ctrl.ctrl->page_size);
         }
 
-        if (qp.cq_mem.get()->vaddr) {
-            cuda_err_chk(cudaMemcpy(qp.cq_mem.get()->vaddr, cpu_vaddrs, 64*1024, cudaMemcpyHostToDevice));
+        if (qp.meta->cq_mem.get()->vaddr) {
+            cuda_err_chk(cudaMemcpy(qp.meta->meta->cq_mem.get()->vaddr, cpu_vaddrs, 64*1024, cudaMemcpyHostToDevice));
         }
 
-        qp.cq_mem.get()->vaddr = (void*)((uint64_t)qp.cq_mem.get()->vaddr + 64*1024);
+        qp.meta->cq_mem.get()->vaddr = (void*)((uint64_t)qp.meta->cq_mem.get()->vaddr + 64*1024);
 
         free(cpu_vaddrs);
     }
@@ -144,21 +149,21 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
         for (size_t i = 0; i < iters; i++) {
             size_t page_64  = i/(64*1024);
             size_t page_4 = i%(64*1024/ctrl.ctrl->page_size);
-            cpu_vaddrs[i] = qp.sq_mem.get()->ioaddrs[1 + page_64] + (page_4 * ctrl.ctrl->page_size);
+            cpu_vaddrs[i] = qp.meta->sq_mem.get()->ioaddrs[1 + page_64] + (page_4 * ctrl.ctrl->page_size);
         }
 
-        if (qp.sq_mem.get()->vaddr) {
-            cuda_err_chk(cudaMemcpy(qp.sq_mem.get()->vaddr, cpu_vaddrs, 64*1024, cudaMemcpyHostToDevice));
+        if (qp.meta->sq_mem.get()->vaddr) {
+            cuda_err_chk(cudaMemcpy(qp.meta->sq_mem.get()->vaddr, cpu_vaddrs, 64*1024, cudaMemcpyHostToDevice));
         }
 
-        qp.sq_mem.get()->vaddr = (void*)((uint64_t)qp.sq_mem.get()->vaddr + 64*1024);
+        qp.meta->sq_mem.get()->vaddr = (void*)((uint64_t)qp.meta->sq_mem.get()->vaddr + 64*1024);
 
         free(cpu_vaddrs);
     }
 
     // Create completion queue
     // (nvm_aq_ref ref, nvm_queue_t* cq, uint16_t id, const nvm_dma_t* dma, size_t offset, size_t qs, bool need_prp = false)
-    int status = nvm_admin_cq_create(ctrl.aq_ref, &qp.cq, qp_id, qp.cq_mem.get(), 0, cq_size, cq_need_prp);
+    int status = nvm_admin_cq_create(ctrl.aq_ref, &qp.cq, qp_id, qp.meta->cq_mem.get(), 0, cq_size, cq_need_prp);
     if (!nvm_ok(status))
     {
         throw error(string("Failed to create completion queue: ") + nvm_strerror(status));
@@ -175,7 +180,7 @@ __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Sett
 
     // Create submission queue
     //  nvm_admin_sq_create(nvm_aq_ref ref, nvm_queue_t* sq, const nvm_queue_t* cq, uint16_t id, const nvm_dma_t* dma, size_t offset, size_t qs, bool need_prp = false)
-    status = nvm_admin_sq_create(ctrl.aq_ref, &qp.sq, &qp.cq, qp_id, qp.sq_mem.get(), 0, sq_size, sq_need_prp);
+    status = nvm_admin_sq_create(ctrl.aq_ref, &qp.sq, &qp.cq, qp_id, qp.meta->sq_mem.get(), 0, sq_size, sq_need_prp);
     if (!nvm_ok(status))
     {
         throw error(string("Failed to create submission queue: ") + nvm_strerror(status));
