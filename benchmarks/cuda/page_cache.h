@@ -244,7 +244,7 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
         uint64_t cache_size = ps*np;
         pages_dma = createDma(ctrl.ctrl, NVM_PAGE_ALIGN(cache_size, 1UL << 16), settings.cudaDevice, settings.adapter, settings.segmentId);
         base_addr = (uint8_t*) pages_dma.get()->vaddr;
-
+        std::cout << "HEREN\n";
         if (ps <= pages_dma.get()->page_size) {
             prp1_buf = createBuffer(np * sizeof(uint64_t), settings.cudaDevice);
             prp1 = (uint64_t*) prp1_buf.get();
@@ -256,8 +256,9 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
                 }
             }
             cuda_err_chk(cudaMemcpy(prp1, temp, np * sizeof(uint64_t), cudaMemcpyHostToDevice));
-
+            std::cout << "HERE1\n";
             free(temp);
+            std::cout << "HERE2\n";
             prps = false;
         }
 
@@ -305,6 +306,7 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
 
             free(temp1);
             free(temp2);
+            free(temp3);
             prps = true;
         }
         std::cout << "Finish Making Page Cache\n";
