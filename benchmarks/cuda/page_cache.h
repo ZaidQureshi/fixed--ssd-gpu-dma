@@ -307,9 +307,10 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
             free(temp2);
             prps = true;
         }
+        std::cout << "Finish Making Page Cache\n";
 
     }
-    std::cout << "Finish Making Page Cache\n";
+
 
 
 };
