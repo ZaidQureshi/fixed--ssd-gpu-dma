@@ -78,8 +78,8 @@ static void getDeviceMemory(int device, void*& bufferPtr, void*& devicePtr, size
         throw error(string("Failed to get pointer attributes: ") + cudaGetErrorString(err));
     }
 
-    devicePtr = (void*) (((uint64_t)attrs.devicePointer) + (64*1024) & 0xffffffffff0000);
-    bufferPtr = (void*) (((uint64_t)bufferPtr) + (64*1024)  & 0xffffffffff0000);
+    devicePtr = (void*) ((((uint64_t)attrs.devicePointer) + (64*1024)) & 0xffffffffff0000);
+    bufferPtr = (void*) ((((uint64_t)bufferPtr) + (64*1024))  & 0xffffffffff0000);
 }
 
 static void getDeviceMemory2(int device, void*& bufferPtr, void*& devicePtr, size_t size)
