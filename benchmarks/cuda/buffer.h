@@ -182,7 +182,7 @@ DmaPtr createDma(const nvm_ctrl_t* ctrl, size_t size, int cudaDevice)
 
     return DmaPtr(dma, [bufferPtr](nvm_dma_t* dma) {
         nvm_dma_unmap(dma);
-        cudaFree(bufferPtr);
+        c//udaFree(bufferPtr);
         std::cout << "HERE1\n";
     });
 }
@@ -199,7 +199,9 @@ BufferPtr createBuffer(size_t size)
         throw error(string("Failed to allocate host memory: ") + cudaGetErrorString(err));
     }
 
-    return BufferPtr(buffer, [](void* ptr) { cudaFreeHost(ptr); });
+    return BufferPtr(buffer, [](void* ptr) {
+        //cudaFreeHost(ptr);
+    });
 }
 
 
@@ -215,7 +217,9 @@ BufferPtr createBuffer(size_t size, int cudaDevice)
 
     getDeviceMemory2(cudaDevice, bufferPtr, size);
 
-    return BufferPtr(bufferPtr, [](void* ptr) { cudaFree(ptr); std::cout << "HERE2\n";});
+    return BufferPtr(bufferPtr, [](void* ptr) {
+        //cudaFree(ptr);
+        std::cout << "HERE2\n";});
 }
 
 
