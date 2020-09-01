@@ -260,7 +260,7 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
             uint64_t how_many_in_one = meta->pages_dma.get()->page_size/ps;
             for (size_t i = 0; i < meta->pages_dma.get()->n_ioaddrs; i++) {
                 for (size_t j = 0; j < how_many_in_one; j++) {
-                    temp[i*how_many_in_one + j] = ((uint64_t)pages_dma.get()->ioaddrs[i]) + j*ps;
+                    temp[i*how_many_in_one + j] = ((uint64_t)meta->pages_dma.get()->ioaddrs[i]) + j*ps;
                 }
             }
             cuda_err_chk(cudaMemcpy(prp1, temp, np * sizeof(uint64_t), cudaMemcpyHostToDevice));
