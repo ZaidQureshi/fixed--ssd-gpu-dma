@@ -182,7 +182,7 @@ DmaPtr createDma(const nvm_ctrl_t* ctrl, size_t size, int cudaDevice)
 
     return DmaPtr(dma, [bufferPtr](nvm_dma_t* dma) {
         nvm_dma_unmap(dma);
-        c//udaFree(bufferPtr);
+        //cudaFree(bufferPtr);
         std::cout << "HERE1\n";
     });
 }
