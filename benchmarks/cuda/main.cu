@@ -125,7 +125,7 @@ int main(int argc, char** argv) {
 
         uint8_t* ret_array = (uint8_t*) malloc(n_pages*page_size);
 
-        cuda_err_chk(cudaMemcpy(ret_array, h_pc.pages_dma.get()->vaddr, sizeof(page_size*n_pages), cudaMemcpyHostToDevice));
+        cuda_err_chk(cudaMemcpy(ret_array, h_pc.pages_dma.get()->vaddr,page_size*n_pages, cudaMemcpyHostToDevice));
         hexdump(ret_array, n_pages*page_size);
 /*
         cudaFree(d_qp);
