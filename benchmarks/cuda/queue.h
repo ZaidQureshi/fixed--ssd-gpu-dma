@@ -74,7 +74,6 @@ void init_gpu_specific_struct(const Settings& settings, QueuePair& qp) {
     qp.cq.qs_minus_1 = qp.cq.qs - 1;
     qp.cq.qs_log2 = (uint32_t) std::log2(qp.cq.qs);
 
-
 }
 
 __host__ void prepareQueuePair(QueuePair& qp, const Controller& ctrl, const Settings& settings, const uint16_t qp_id);

@@ -254,6 +254,7 @@ page_cache_t(const uint32_t ps, const uint64_t np, const Settings& settings, con
         if (ps <= meta->pages_dma.get()->page_size) {
             meta->prp1_buf = createBuffer(np * sizeof(uint64_t), settings.cudaDevice);
             prp1 = (uint64_t*) meta->prp1_buf.get();
+            std::cout << np << " " << sizeof(uint64_t) << std:endl;
             uint64_t* temp = (uint64_t*) malloc(np * sizeof(uint64_t));
             if (temp == NULL)
                 std::cout << "NULL\n";
